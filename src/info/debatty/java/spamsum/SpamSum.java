@@ -1,27 +1,31 @@
-package info.debatty.spamsum;
+package info.debatty.java.spamsum;
 
 /**
- * A Java implementation of SpamSum / SSDeep
+ * A Java implementation of SpamSum / SSDeep / Context Triggered Piecewise Hashing
  * 
  * http://www.samba.org/ftp/unpacked/junkcode/spamsum/
  * http://ssdeep.sourceforge.net/
  * 
- * With the additional possibility to define the length of hash, number of
- * characters used in hash (max 64), and the minimum block size
  * 
- * @author tibo
+ * @author Thibault Debatty
  */
 public class SpamSum {
     
     public static void main (String[] args) {
+        
         String s1 = "This is a string that might be a spam... Depends on the "
                 + "hash, if it looks like a known hash...\n";
+        String s2 = "Play to win  Download Casino King Spin now\n";
         
         SpamSum s = new SpamSum();
-        System.out.println(s.HashString(s1));
         
-        s = new SpamSum(10, 6, 1);
+        // 3:hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b:hujkYFFWV51HM8Lzs1b
         System.out.println(s.HashString(s1));
+        // hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b
+        System.out.println(s.Left());
+        
+        // 3:Y0ujLEEz6KxMENJv:Y0u3tz68/v
+        System.out.println(s.HashString(s2));
     }
     
     protected static final long HASH_PRIME = 0x01000193;
@@ -34,50 +38,35 @@ public class SpamSum {
     protected int MIN_BLOCKSIZE = 3;
     protected int SPAMSUM_LENGTH = 64;
     protected int CHARACTERS = 64;
+    
     protected int blocksize;
     protected char[] left;
     protected char[] right;
     
-    /**
-     * Will create a SpamSum hash of given length, using the given number of 
-     * characters, and given minimum block size
-     * 
-     * @param length
-     * @param characters
-     * @param min_blocksize 
-     */
-    public SpamSum(int length, int characters, int min_blocksize) {
-        SPAMSUM_LENGTH = length;
-        CHARACTERS = characters;
-        MIN_BLOCKSIZE = min_blocksize;
-    }
-    
-    public SpamSum(int length, int characters) {
-        SPAMSUM_LENGTH = length;
-        CHARACTERS = characters;
-    }
-    
-    public SpamSum(int length) {
-        SPAMSUM_LENGTH = length;
-    }
-    
-    public SpamSum() {
-        
-    }
 
+    /**
+     * Computes and returns the spamsum signature of this string.
+     * E.g. : 3:hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b:hujkYFFWV51HM8Lzs1b
+     * The block size is automatically computed
+     * 
+     * @param string
+     * @return spamsum signature
+     */
     public String HashString(String string) {
         return HashString(string, 0);
     }
     
     /**
-     *
+     * Computes and returns the spamsum signature of this string.
+     * E.g. : 3:hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b:hujkYFFWV51HM8Lzs1b
+     * 
      * @param string
-     * @param bsize
-     * @return
+     * @param bsize block size; if 0, the block size is automatically computed
+     * @return spamsum signature
      */
     public String HashString(String string, int bsize) {
-        int length = string.length();
-        char[] in = string.toCharArray();
+        byte[] in = string.getBytes(); // = StandardCharsets.UTF_8
+        int length = in.length;
 
         if (bsize == 0) {
             /* guess a reasonable block size */
@@ -109,9 +98,10 @@ public class SpamSum {
                  * hashes
                  */
                 
-                h = rolling_hash((byte) in[i]);
-                h2 = sum_hash((byte) in[i], h2);
-                h3 = sum_hash((byte) in[i], h3);
+                int character = (in[i] + 256) % 256;
+                h = rolling_hash(character);
+                h2 = sum_hash(character, h2);
+                h3 = sum_hash(character, h3);
 
                 if (h % blocksize == (blocksize - 1)) {
 
@@ -178,14 +168,26 @@ public class SpamSum {
                 + Right();
     }
 
+    /**
+     * 
+     * @return block size
+     */
     public long BlockSize() {
         return blocksize;
     }
 
+    /**
+     * 
+     * @return left part of the signature
+     */
     public String Left() {
         return String.valueOf(left).trim();
     }
 
+    /**
+     * 
+     * @return right part of the signature
+     */
     public String Right() {
         return String.valueOf(right).trim();
     }

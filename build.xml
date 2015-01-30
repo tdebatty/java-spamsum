@@ -70,4 +70,10 @@
     nbproject/build-impl.xml file. 
 
     -->
+    
+    <target depends="-javadoc-build" description="bundle javadoc in a jar" name="package-doc">
+        <jar basedir="dist/javadoc" destfile="dist/${ant.project.name}-javadoc.jar"/>
+    </target>
+    
+    <target name="-post-jar" depends="package-doc" />
 </project>
