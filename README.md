@@ -4,6 +4,15 @@ A Java implementation of SpamSum, also known as SSDeep or Context Triggered Piec
 
 
 ## Download
+Using maven:
+```
+<dependency>
+    <groupId>info.debatty</groupId>
+    <artifactId>java-spamsum</artifactId>
+    <version>RELEASE</version>
+</dependency>
+```
+
 See the [releases](https://github.com/tdebatty/java-spamsum/releases) page.
 
 ## Usage
