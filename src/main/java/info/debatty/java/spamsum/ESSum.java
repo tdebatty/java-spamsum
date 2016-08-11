@@ -1,8 +1,11 @@
 package info.debatty.java.spamsum;
 
 /**
- * Extended SpamSum
- * @author tibo
+ * Extended SpamSum.
+ * This modified version of SpamSum is designed to be used when binning input
+ * strings into buckets.
+ * 
+ * @author Thibault Debatty
  */
 public class ESSum {
 
@@ -12,6 +15,10 @@ public class ESSum {
     public static void main (String[] args) {
         String s1 = "This is a string that might be a spam... Depends on the "
                 + "hash, if it looks like a known hash...\n";
+        
+        ESSum ess = new ESSum(2, 1000, 1);
+        int[] hash = ess.HashString(s1);
+        System.out.println(hash[0]);
         
         
     }
@@ -32,23 +39,19 @@ public class ESSum {
      * Will create a SpamSum hash of given length, using the given number of 
      * characters, and given minimum block size
      * 
-     * @param length
-     * @param characters
+     * @param stages
+     * @param buckets
      * @param min_blocksize 
      */
-    public ESSum(int length, int characters, int min_blocksize) {
-        SPAMSUM_LENGTH = length;
-        CHARACTERS = characters;
+    public ESSum(int stages, int buckets, int min_blocksize) {
+        SPAMSUM_LENGTH = stages;
+        CHARACTERS = buckets;
         MIN_BLOCKSIZE = min_blocksize;
     }
     
-    public ESSum(int length, int characters) {
-        SPAMSUM_LENGTH = length;
-        CHARACTERS = characters;
-    }
-    
-    public ESSum(int length) {
-        SPAMSUM_LENGTH = length;
+    public ESSum(int stages, int buckets) {
+        SPAMSUM_LENGTH = stages;
+        CHARACTERS = buckets;
     }
     
     public ESSum() {

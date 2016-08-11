@@ -1,0 +1,3 @@
+ssdeep,1.1--blocksize:hash:hash,filename
+48:9GCjd6ALqt7+svFIHO4CJ4foXT5aKDbyb4XDFN40shD7iqRJCLoz6a8s+U7f+4kh:9vvqt7+sUO4CKAXTgKDbRXDFOl7FRJAD,"loremipsum2.txt"
+48:9zdDCjd6ALqt7+svFIHO4VHCJ4foXT5Luz5b4XDFN40shD7iqRJCLoz6a8s+U7fe:9zMvqt7+sUO4NCKAXT5LuzSXDFOl7FRw,"loremipsum.txt"
