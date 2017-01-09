@@ -1,10 +1,36 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2017 Thibault Debatty.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 package info.debatty.java.spamsum;
 
 import info.debatty.java.stringsimilarity.Levenshtein;
 
 /**
- * A Java implementation of SpamSum / SSDeep / Context Triggered Piecewise Hashing
+ * A Java implementation of SpamSum / SSDeep / Context Triggered Piecewise
+ * Hashing.
  *
+ * Original C code by Andrew Tridgell.
  * http://www.samba.org/ftp/unpacked/junkcode/spamsum/
  * http://ssdeep.sourceforge.net/
  *
@@ -13,7 +39,11 @@ import info.debatty.java.stringsimilarity.Levenshtein;
  */
 public class SpamSum {
 
-    public static void main (String[] args) {
+    /**
+     * A simple example.
+     * @param args
+     */
+    public static void main(final String[] args) {
 
         String s1 = "This is a string that might be a spam... Depends on the "
                 + "hash, if it looks like a known hash...\n";
@@ -22,29 +52,24 @@ public class SpamSum {
         SpamSum s = new SpamSum();
 
         // 3:hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b:hujkYFFWV51HM8Lzs1b
-        System.out.println(s.HashString(s1));
-        // hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b
-        System.out.println(s.Left());
+        System.out.println(s.hashString(s1));
 
         // 3:Y0ujLEEz6KxMENJv:Y0u3tz68/v
-        System.out.println(s.HashString(s2));
+        System.out.println(s.hashString(s2));
     }
 
-    protected static final long HASH_PRIME = 0x01000193;
-    protected static final long HASH_INIT = 0x28021967;
-    protected static final char[] B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".toCharArray();
+    private static final long HASH_PRIME = 0x01000193;
+    private static final long HASH_INIT = 0x28021967;
+    private static final char[] B64 =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+                    .toCharArray();
 
     // The original algorithm works using UINT32 => 2 ^ 32
-    protected static final long UINT32 = (long)2 << 31;
+    private static final long UINT32 = (long) 2 << 31;
 
-    protected int MIN_BLOCKSIZE = 3;
-    protected int SPAMSUM_LENGTH = 64;
-    protected int CHARACTERS = 64;
-
-    protected int blocksize;
-    protected char[] left;
-    protected char[] right;
-
+    private static final int MIN_BLOCKSIZE = 3;
+    private static final int SPAMSUM_LENGTH = 64;
+    private static final int CHARACTERS = 64;
 
     /**
      * Computes and returns the spamsum signature of this string.
@@ -54,8 +79,8 @@ public class SpamSum {
      * @param string
      * @return spamsum signature
      */
-    public String HashString(String string) {
-        return HashString(string, 0);
+    public final Signature hashString(final String string) {
+        return hashString(string, 0);
     }
 
     /**
@@ -66,20 +91,21 @@ public class SpamSum {
      * @param bsize block size; if 0, the block size is automatically computed
      * @return spamsum signature
      */
-    public String HashString(String string, int bsize) {
+    public final Signature hashString(final String string, final int bsize) {
         byte[] in = string.getBytes(); // = StandardCharsets.UTF_8
         int length = in.length;
 
+        int blocksize = bsize;
         if (bsize == 0) {
             /* guess a reasonable block size */
             blocksize = MIN_BLOCKSIZE;
             while (blocksize * SPAMSUM_LENGTH < length) {
                 blocksize = blocksize * 2;
             }
-
-        } else {
-            blocksize = bsize;
         }
+
+        char[] left;
+        char[] right;
 
         while (true) {
 
@@ -90,45 +116,41 @@ public class SpamSum {
             int j = 0;
             long h3 = HASH_INIT;
             long h2 = HASH_INIT;
-            long h = rolling_hash_reset();
+            long h = rollingHashReset();
 
             for (int i = 0; i < length; i++) {
 
-                /* at each character we update the rolling hash and the normal
-                 * hash. When the rolling hash hits the reset value then we emit
-                 * the normal hash as a element of the signature and reset both
-                 * hashes
-                 */
-
+                // at each character we update the rolling hash and the normal
+                // hash. When the rolling hash hits the reset value then we emit
+                // the normal hash as a element of the signature and reset both
+                // hashes
                 int character = (in[i] + 256) % 256;
-                h = rolling_hash(character);
-                h2 = sum_hash(character, h2);
-                h3 = sum_hash(character, h3);
+                h = rollingHash(character);
+                h2 = sumHash(character, h2);
+                h3 = sumHash(character, h3);
 
                 if (h % blocksize == (blocksize - 1)) {
 
-                    /* we have hit a reset polong. We now emit a hash which is based
-                     * on all chacaters in the piece of the string between the last
-                     * reset polong and this one
-                     */
-
+                    // we have hit a reset polong. We now emit a hash which is
+                    // based on all chacaters in the piece of the string between
+                    // the last reset polong and this one
                     left[j] = B64[(int) (h2 % CHARACTERS)];
                     if (j < SPAMSUM_LENGTH - 1) {
 
-                        /* we can have a problem with the tail overflowing. The easiest way
-                         * to cope with this is to only reset the second hash if we have
-                         * room for more characters in our signature. This has the effect of
-                         * combining the last few pieces of the message longo a single piece
-                         */
+                        // we can have a problem with the tail overflowing. The
+                        // easiest way to cope with this is to only reset the
+                        // second hash if we have room for more characters in
+                        // our signature. This has the effect of combining the
+                        // last few pieces of the message longo a single piece
                         h2 = HASH_INIT;
                         j++;
                     }
                 }
 
-                /* this produces a second signature with a block size of block_size*2.
-                 * By producing dual signatures in this way the effect of small changes
-                 * in the string near a block size boundary is greatly reduced.
-                 */
+                // this produces a second signature with a block size of
+                // block_size*2. By producing dual signatures in this way the
+                // effect of small changes in the string near a block size
+                // boundary is greatly reduced.
                 if (h % (blocksize * 2) == ((blocksize * 2) - 1)) {
                     right[k] = B64[(int) (h3 % CHARACTERS)];
                     if (k < SPAMSUM_LENGTH / 2 - 1) {
@@ -138,21 +160,22 @@ public class SpamSum {
                 }
             }
 
-            /* If we have anything left then add it to the end. This ensures that the
-             * last part of the string is always considered
-             */
+            // If we have anything left then add it to the end. This ensures
+            // that the last part of the string is always considered
             if (h != 0) {
                 left[j] = B64[(int) (h2 % CHARACTERS)];
                 right[k] = B64[(int) (h3 % CHARACTERS)];
             }
 
-            /* Our blocksize guess may have been way off - repeat if necessary
-             */
+            // blocksize guess may have been way off - repeat, except if:
+            // - blocksize was manually specified
+            // - current blocksize is already too small
+            // - dividing by 2 would produce a hash too small...
+
             if (
-                    (bsize != 0) ||                 // blocksize was manually specified
-                    (blocksize <= MIN_BLOCKSIZE) || // current blocksize is already too small
-                    (j >= SPAMSUM_LENGTH / 2)       // dividing by 2 would produce a hash too small...
-            ) {
+                    bsize != 0
+                    || blocksize <= MIN_BLOCKSIZE
+                    || j >= SPAMSUM_LENGTH / 2) {
                 break;
             } else {
                 blocksize = blocksize / 2;
@@ -160,47 +183,20 @@ public class SpamSum {
             }
         }
 
-        return toString();
-    }
-
-    @Override
-    public String toString() {
-        return "" + blocksize + ":"
-                + Left() + ":"
-                + Right();
+        return new Signature(
+                String.valueOf(left).trim(),
+                String.valueOf(right).trim(),
+                blocksize);
     }
 
     /**
-     *
-     * @return block size
-     */
-    public long BlockSize() {
-        return blocksize;
-    }
-
-    /**
-     *
-     * @return left part of the signature
-     */
-    public String Left() {
-        return String.valueOf(left).trim();
-    }
-
-    /**
-     *
-     * @return right part of the signature
-     */
-    public String Right() {
-        return String.valueOf(right).trim();
-    }
-
-    /* A simple non-rolling hash, based on the FNV hash
+     * A simple non-rolling hash, based on the FNV hash.
      * http://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
      */
-    protected static long sum_hash(long c, long h) {
-        h = (h * HASH_PRIME) % UINT32;
-        h = (h ^ c) % UINT32;
-        return h;
+    private static long sumHash(final long c, final long h) {
+        long result = (h * HASH_PRIME) % UINT32;
+        result = (result ^ c) % UINT32;
+        return result;
     }
 
     /* A rolling hash, based on the Adler checksum. By using a rolling hash
@@ -209,15 +205,15 @@ public class SpamSum {
      * times the index. h3 is a shift/xor based rolling hash, and is mostly
      * needed to ensure that we can cope with large blocksize values
      */
-    protected static final int ROLLING_WINDOW = 7;
+    private static final int ROLLING_WINDOW = 7;
 
-    protected long[] rolling_window;
-    protected long rolling_h1;
-    protected long rolling_h2;
-    protected long rolling_h3;
-    protected long rolling_n;
+    private long[] rolling_window;
+    private long rolling_h1;
+    private long rolling_h2;
+    private long rolling_h3;
+    private long rolling_n;
 
-    protected long rolling_hash(long c) {
+    private long rollingHash(final long c) {
         rolling_h2 -= rolling_h1;
         rolling_h2 = (rolling_h2 + ROLLING_WINDOW * c) % UINT32;
 
@@ -233,7 +229,7 @@ public class SpamSum {
         return (rolling_h1 + rolling_h2 + rolling_h3) % UINT32;
     }
 
-    protected long rolling_hash_reset() {
+    private long rollingHashReset() {
         rolling_window = new long[ROLLING_WINDOW];
 
         rolling_h1 = 0;
@@ -244,10 +240,23 @@ public class SpamSum {
         return 0;
     }
 
-    public int match(String str1, String str2) {
 
-        String[] split1 = str1.split(":", 2);
-        String[] split2 = str2.split(":", 2);
+
+    /**
+     * Compute the similarity between two SpamSum signatures.
+     *
+     * C code originally translated by Mahmood S. Zargar
+     * https://github.com/retrography/JessDeep/
+     *
+     * @param sig1
+     * @param sig2
+     * @return
+     */
+    public final int match(final String sig1, final String sig2) {
+
+        // each signature looks like  "size:abc:def"
+        String[] split1 = sig1.split(":", 2);
+        String[] split2 = sig2.split(":", 2);
 
         if (split1.length != 2 || split2.length != 2) {
             return 0;
@@ -256,41 +265,30 @@ public class SpamSum {
         int block_size1 = Integer.parseInt(split1[0]);
         int block_size2 = Integer.parseInt(split2[0]);
 
-
-        /* if the blocksizes don't match then we are comparing
-         apples to oranges ... */
+        //if the blocksizes don't match then we are comparing
+        // apples to oranges ...
         if (block_size1 != block_size2
                 && block_size1 != block_size2 * 2
                 && block_size2 != block_size1 * 2) {
             return 0;
         }
 
-        str1 = split1[1];
-        str2 = split2[1];
+        // there is very little information content is sequences of
+        // the same character like 'LLLLL'. Eliminate any sequences
+        // longer than 3.
+        String s1 = eliminateSequences(split1[1]);
+        String s2 = eliminateSequences(split2[1]);
 
-
-        /* there is very little information content is sequences of
-         the same character like 'LLLLL'. Eliminate any sequences
-         longer than 3. */
-        String s1 = eliminateSequences(str1);
-        String s2 = eliminateSequences(str2);
-
-        //if (!s1 || !s2) {
-        //    return 0;
-        //}
-
-        /* now break them into the two pieces */
+        // now break them into the two pieces
+        // first block is abc:def
         String s1_1 = s1;
         String s2_1 = s2;
 
+        // second block is :def
         String s1_2 = ":" + s1.split(":")[1];
         String s2_2 = ":" + s2.split(":")[1];
 
-
-
-        /* each signature has a string for two block sizes. We now
-         choose how to combine the two block sizes. We checked above
-         that they have at least one block size in common */
+        // compute score
         if (block_size1 == block_size2) {
             return Math.max(
                     score(s1_1, s2_1, block_size1),
@@ -304,8 +302,32 @@ public class SpamSum {
         return score(s1_2, s2_1, block_size2);
     }
 
-    private int score(String s1, String s2, int block_size) {
+    /**
+     * Compute the match score between two signatures.
+     * @param sig1
+     * @param sig2
+     * @return
+     */
+    public final int match(final Signature sig1, final Signature sig2) {
 
+        // This is dirty!
+        return match(sig1.toString(), sig2.toString());
+    }
+
+    /**
+     *
+     * Compute the score between blocks using Levenshtein edit distance and
+     * rescaling to return a score between 0 and 100.
+     *
+     * C code originally translated by Mahmood S Zargar.
+     * https://github.com/retrography/JessDeep/
+     *
+     * @param s1
+     * @param s2
+     * @param block_size
+     * @return
+     */
+    private int score(final String s1, final String s2, final int block_size) {
 
         int len1 = s1.length();
         int len2 = s2.length();
@@ -315,42 +337,28 @@ public class SpamSum {
             return 0;
         }
 
-        /* the two strings must have a common substring of length
-         ROLLING_WINDOW to be candidates */
-        //if (has_common_substring(s1, s2) == 0) {
-        //    return 0;
-        //}
-
-        /* compute the edit distance between the two strings. The edit distance gives
-         us a pretty good idea of how closely related the two strings are */
+        // compute the edit distance between the two strings
         Levenshtein levenshtein = new Levenshtein();
         int score = (int) levenshtein.distance(s1, s2);
 
-        /* scale the edit distance by the lengths of the two
-         strings. This changes the score to be a measure of the
-         proportion of the message that has changed rather than an
-         absolute quantity. It also copes with the variability of
-         the string lengths. */
-        score = (score * SPAMSUM_LENGTH) / (len1 + len2);
+        // Rescale to get a score between 0 and 100
+        // and independant of the length of strings
+        // the original C code first multiplies by 64 (SPAMSUM_LENGTH) and
+        // then divides by 64, which introduces some rounding approximations
+        // hence we cannot simplify the line below... :(
+        score = (score * SPAMSUM_LENGTH) / (len1 + len2) * 100 / SPAMSUM_LENGTH;
 
-        /* at this stage the score occurs roughly on a 0-64 scale,
-         * with 0 being a good match and 64 being a complete
-         * mismatch */
-
-        /* rescale to a 0-100 scale (friendlier to humans) */
-        score = (100 * score) / 64;
-
-        /* it is possible to get a score above 100 here, but it is a
-         really terrible match */
+        // it is possible to get a score above 100 here, but it is a
+        // really terrible match
         if (score >= 100) {
             return 0;
         }
 
-        /* now re-scale on a 0-100 scale with 0 being a poor match and
-         100 being a excellent match. */
+        // now re-scale on a 0-100 scale with 0 being a poor match and
+        // 100 being a excellent match.
         score = 100 - score;
 
-        /* when the blocksize is small we don't want to exaggerate the match size */
+        // when the blocksize is small, don't exaggerate the match size
         if (score > block_size / MIN_BLOCKSIZE * Math.min(len1, len2)) {
             score = block_size / MIN_BLOCKSIZE * Math.min(len1, len2);
         }
@@ -358,6 +366,15 @@ public class SpamSum {
         return score;
     }
 
+    /**
+     * Eliminate sequences containing the same repeated character.
+     *
+     * C code originally translated by Mahmood S. Zargar
+     * https://github.com/retrography/JessDeep/
+     *
+     * @param str
+     * @return
+     */
     private String eliminateSequences(final String str) {
 
         char[] str_array = str.toCharArray();
@@ -372,8 +389,6 @@ public class SpamSum {
                 ret[j++] = str_array[i];
             }
         }
-
-        //ret[j] = 0;
 
         return new String(ret);
     }

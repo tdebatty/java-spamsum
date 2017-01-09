@@ -57,44 +57,49 @@ public class SpamSumTest {
         assertEquals(
                 85,
                 spamsum.match(
-                        spamsum.HashString(li1),
-                        spamsum.HashString(li2)));
+                        spamsum.hashString(li1),
+                        spamsum.hashString(li2)));
     }
 
     @Test
     public void testHashString() {
         System.out.println("hash");
-        SpamSum instance = new SpamSum();
+        SpamSum spamsum = new SpamSum();
 
-        String expResult = "3:Y0ujLEEz6KxMENJv:Y0u3tz68/v";
-        String result = instance.HashString("Play to win  Download Casino King Spin now\n");
-        assertEquals(expResult, result);
+        Signature result = spamsum.hashString(
+                "Play to win  Download Casino King Spin now\n");
+        assertEquals(
+                "3:Y0ujLEEz6KxMENJv:Y0u3tz68/v",
+                result.toString());
 
-        expResult = "3:hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b:hujkYFFWV51HM8Lzs1b";
-        result = instance.HashString("This is a string that might be a spam... Depends on the "
+        result = spamsum.hashString(
+                "This is a string that might be a spam... Depends on the "
                 + "hash, if it looks like a known hash...\n");
-        assertEquals(expResult, result);
+
+        assertEquals(
+                "3:hMCEqNE0M+YFFWV5wdgHMyA8FNzs1b:hujkYFFWV51HM8Lzs1b",
+                result.toString());
     }
 
     @Test
     public void testHashFile() throws IOException {
-        /*
-        ssdeep -b *
-        ssdeep,1.1--blocksize:hash:hash,filename
-        48:9GCjd6ALqt7+svFIHO4CJ4foXT5aKDbyb4XDFN40shD7iqRJCLoz6a8s+U7f+4kh:9vvqt7+sUO4CKAXTgKDbRXDFOl7FRJAD,"loremipsum2.txt"
-        48:9zdDCjd6ALqt7+svFIHO4VHCJ4foXT5Luz5b4XDFN40shD7iqRJCLoz6a8s+U7fe:9zMvqt7+sUO4NCKAXT5LuzSXDFOl7FRw,"loremipsum.txt"
-        */
+        // ssdeep -b *
+        // ssdeep,1.1--blocksize:hash:hash,filename
+        // 48:9GCjd6ALqt7+svFIHO4CJ4foXT5aKDbyb4XDFN40shD7iqRJCLoz6a8s+U7f+4kh:
+        // 9vvqt7+sUO4CKAXTgKDbRXDFOl7FRJAD,"loremipsum2.txt"
+        // 48:9zdDCjd6ALqt7+svFIHO4VHCJ4foXT5Luz5b4XDFN40shD7iqRJCLoz6a8s+U7fe:
+        // 9zMvqt7+sUO4NCKAXT5LuzSXDFOl7FRw,"loremipsum.txt"
 
         SpamSum spamsum = new SpamSum();
         String li1 = readResourceFile("loremipsum.txt");
         assertEquals(
                 "48:9zdDCjd6ALqt7+svFIHO4VHCJ4foXT5Luz5b4XDFN40shD7iqRJCLoz6a8s+U7fe:9zMvqt7+sUO4NCKAXT5LuzSXDFOl7FRw",
-                spamsum.HashString(li1));
+                spamsum.hashString(li1).toString());
 
         String li2 = readResourceFile("loremipsum2.txt");
         assertEquals(
                 "48:9GCjd6ALqt7+svFIHO4CJ4foXT5aKDbyb4XDFN40shD7iqRJCLoz6a8s+U7f+4kh:9vvqt7+sUO4CKAXTgKDbRXDFOl7FRJAD",
-                spamsum.HashString(li2));
+                spamsum.hashString(li2).toString());
 
     }
 
@@ -118,5 +123,4 @@ public class SpamSumTest {
         //string_builder.deleteCharAt(string_builder.length() - 1);
         return string_builder.toString();
     }
-
 }
